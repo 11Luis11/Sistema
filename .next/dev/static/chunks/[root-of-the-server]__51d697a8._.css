@@ -155,16 +155,25 @@
   :root, :host {
     --color-red-50: #fef2f2;
     --color-red-100: #ffe2e2;
+    --color-red-200: #ffcaca;
     --color-red-300: #ffa3a3;
     --color-red-400: #ff6568;
     --color-red-600: #e40014;
     --color-red-700: #bf000f;
+    --color-red-800: #9f0712;
+    --color-amber-50: #fffbeb;
+    --color-amber-200: #fee685;
+    --color-amber-500: #f99c00;
+    --color-amber-600: #dd7400;
+    --color-amber-700: #b75000;
+    --color-amber-800: #953d00;
     --color-yellow-100: #fef9c2;
     --color-yellow-700: #a36100;
     --color-green-100: #dcfce7;
     --color-green-700: #008138;
     --color-blue-100: #dbeafe;
     --color-blue-600: #155dfc;
+    --color-gray-300: #d1d5dc;
     --color-black: #000;
     --color-white: #fff;
     --spacing: .25rem;
@@ -214,16 +223,25 @@
     :root, :host {
       --color-red-50: lab(96.5005% 4.18511 1.52329);
       --color-red-100: lab(92.243% 10.2865 3.83865);
+      --color-red-200: lab(86.017% 19.8815 7.75869);
       --color-red-300: lab(76.5514% 36.4219 15.5335);
       --color-red-400: lab(63.7053% 60.7449 31.3109);
       --color-red-600: lab(48.4493% 77.4328 61.5452);
       --color-red-700: lab(40.4273% 67.2623 53.7441);
+      --color-red-800: lab(33.7174% 55.8993 41.0293);
+      --color-amber-50: lab(98.6252% -.635982 8.42309);
+      --color-amber-200: lab(91.7203% -.505269 49.9084);
+      --color-amber-500: lab(72.7183% 31.8672 97.9407);
+      --color-amber-600: lab(60.3514% 40.5624 87.1228);
+      --color-amber-700: lab(47.2709% 42.9082 69.2966);
+      --color-amber-800: lab(37.8823% 37.1699 52.2718);
       --color-yellow-100: lab(97.3564% -4.51407 27.344);
       --color-yellow-700: lab(47.8202% 25.2426 66.5015);
       --color-green-100: lab(96.186% -13.8464 6.52362);
       --color-green-700: lab(47.0329% -47.0239 31.4788);
       --color-blue-100: lab(92.0301% -2.24757 -11.6453);
       --color-blue-600: lab(44.0605% 29.0279 -86.0352);
+      --color-gray-300: lab(85.1236% -.612259 -3.7138);
     }
   }
 }
@@ -733,12 +751,24 @@
     margin-top: calc(var(--spacing) * -4);
   }
 
+  .mt-0\.5 {
+    margin-top: calc(var(--spacing) * .5);
+  }
+
+  .mt-1 {
+    margin-top: calc(var(--spacing) * 1);
+  }
+
   .mt-1\.5 {
     margin-top: calc(var(--spacing) * 1.5);
   }
 
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
+  }
+
+  .mt-3 {
+    margin-top: calc(var(--spacing) * 3);
   }
 
   .mt-4 {
@@ -751,6 +781,10 @@
 
   .mt-auto {
     margin-top: auto;
+  }
+
+  .mb-1 {
+    margin-bottom: calc(var(--spacing) * 1);
   }
 
   .mb-2 {
@@ -1192,7 +1226,7 @@
     flex: 1;
   }
 
-  .shrink-0 {
+  .flex-shrink-0, .shrink-0 {
     flex-shrink: 0;
   }
 
@@ -1596,6 +1630,11 @@
     border-width: 0;
   }
 
+  .border-2 {
+    border-style: var(--tw-border-style);
+    border-width: 2px;
+  }
+
   .border-\[1\.5px\] {
     border-style: var(--tw-border-style);
     border-width: 1.5px;
@@ -1633,6 +1672,10 @@
 
   .border-\(--color-border\) {
     border-color: var(--color-border);
+  }
+
+  .border-amber-200 {
+    border-color: var(--color-amber-200);
   }
 
   .border-border {
@@ -1681,6 +1724,10 @@
     }
   }
 
+  .border-red-200 {
+    border-color: var(--color-red-200);
+  }
+
   .border-sidebar-border {
     border-color: var(--sidebar-border);
   }
@@ -1703,6 +1750,14 @@
 
   .bg-accent {
     background-color: var(--accent);
+  }
+
+  .bg-amber-50 {
+    background-color: var(--color-amber-50);
+  }
+
+  .bg-amber-500 {
+    background-color: var(--color-amber-500);
   }
 
   .bg-background {
@@ -1743,6 +1798,10 @@
 
   .bg-foreground {
     background-color: var(--foreground);
+  }
+
+  .bg-gray-300 {
+    background-color: var(--color-gray-300);
   }
 
   .bg-green-100 {
@@ -1803,6 +1862,10 @@
     .bg-primary\/20 {
       background-color: color-mix(in oklab, var(--primary) 20%, transparent);
     }
+  }
+
+  .bg-red-50 {
+    background-color: var(--color-red-50);
   }
 
   .bg-red-100 {
@@ -2154,6 +2217,18 @@
     color: var(--accent-foreground);
   }
 
+  .text-amber-600 {
+    color: var(--color-amber-600);
+  }
+
+  .text-amber-700 {
+    color: var(--color-amber-700);
+  }
+
+  .text-amber-800 {
+    color: var(--color-amber-800);
+  }
+
   .text-background {
     color: var(--background);
   }
@@ -2218,6 +2293,10 @@
 
   .text-red-700 {
     color: var(--color-red-700);
+  }
+
+  .text-red-800 {
+    color: var(--color-red-800);
   }
 
   .text-secondary-foreground {

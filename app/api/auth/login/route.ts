@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Too many login attempts. Please try again later.',
+          message: 'Demasiados intentos de inicio de sesión. Por favor, intenta nuevamente en 15 minutos.',
           error_code: 'RATE_LIMIT_EXCEEDED',
         },
         { status: 429, headers: { 'Retry-After': '900' } }
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid input format',
+          message: 'Por favor, verifica que el correo electrónico y la contraseña sean válidos.',
           errors: validation.error.flatten(),
         },
         { status: 400 }
@@ -38,19 +38,22 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = validation.data;
 
+    // Verificar intentos de login antes de consultar la base de datos
     const attemptCheck = checkLoginAttempts(email);
     if (!attemptCheck.allowed) {
       return NextResponse.json(
         {
           success: false,
-          message: attemptCheck.message,
+          message: 'Cuenta bloqueada temporalmente. Has excedido el número máximo de intentos (3). Intenta nuevamente en 15 minutos.',
           attemptsLeft: 0,
+          locked: true,
           error_code: 'ACCOUNT_LOCKED',
         },
         { status: 429 }
       );
     }
 
+    // Buscar usuario en la base de datos
     const users = await sql`
       SELECT u.id, u.password_hash, u.email, u.role_id, u.first_name, u.last_name, u.active, r.name as role_name
       FROM users u
@@ -58,13 +61,19 @@ export async function POST(request: NextRequest) {
       WHERE LOWER(u.email) = LOWER(${email}) AND (u.active = true OR u.active IS NULL)
     `;
 
+    // Usuario no existe
     if (users.length === 0) {
       recordFailedAttempt(email);
+      const remainingAttempts = Math.max(0, attemptCheck.attemptsLeft - 1);
+
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid credentials',
-          attemptsLeft: attemptCheck.attemptsLeft - 1,
+          message: remainingAttempts > 0 
+            ? `Credenciales inválidas. Te quedan ${remainingAttempts} ${remainingAttempts === 1 ? 'intento' : 'intentos'}.`
+            : 'Cuenta bloqueada. Has excedido el número máximo de intentos.',
+          attemptsLeft: remainingAttempts,
+          locked: remainingAttempts === 0,
           error_code: 'INVALID_CREDENTIALS',
         },
         { status: 401 }
@@ -73,26 +82,44 @@ export async function POST(request: NextRequest) {
 
     const user = users[0];
 
+    // Verificar contraseña
     const passwordMatch = await verifyPassword(password, user.password_hash);
 
     if (!passwordMatch) {
       recordFailedAttempt(email);
+      const remainingAttempts = Math.max(0, attemptCheck.attemptsLeft - 1);
+      
+      // Registrar intento fallido en audit log (usuario existe pero contraseña incorrecta)
+      try {
+        await sql`
+          INSERT INTO login_audit_log (user_id, email, ip_address, success, timestamp)
+          VALUES (${user.id}, ${email}, ${ip}, false, NOW())
+        `;
+      } catch (auditError) {
+        console.error('[Audit Log Error]', auditError);
+      }
+
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid credentials',
-          attemptsLeft: attemptCheck.attemptsLeft - 1,
+          message: remainingAttempts > 0 
+            ? `Credenciales inválidas. Te quedan ${remainingAttempts} ${remainingAttempts === 1 ? 'intento' : 'intentos'}.`
+            : 'Cuenta bloqueada. Has excedido el número máximo de intentos.',
+          attemptsLeft: remainingAttempts,
+          locked: remainingAttempts === 0,
           error_code: 'INVALID_CREDENTIALS',
         },
         { status: 401 }
       );
     }
 
+    // Login exitoso
     clearLoginAttempts(email);
 
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const sessionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    // Registrar login exitoso en audit log
     try {
       await sql`
         INSERT INTO login_audit_log (user_id, email, ip_address, success, timestamp)
@@ -105,7 +132,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Login successful',
+        message: '¡Bienvenido de nuevo!',
         user: {
           id: user.id,
           email: sanitizeString(user.email),
@@ -120,7 +147,7 @@ export async function POST(request: NextRequest) {
       {
         status: 200,
         headers: {
-          'Set-Cookie': `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${24 * 60 * 60}`,
+          'Set-Cookie': `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${24 * 60 * 60}; Path=/`,
         },
       }
     );
@@ -129,7 +156,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: 'An error occurred during login',
+        message: 'Ha ocurrido un error en el servidor. Por favor, intenta nuevamente más tarde.',
         error_code: 'INTERNAL_SERVER_ERROR',
       },
       { status: 500 }

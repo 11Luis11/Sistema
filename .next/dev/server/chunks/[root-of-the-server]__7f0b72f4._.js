@@ -346,7 +346,7 @@ async function POST(request) {
         if (!rateLimitCheck.allowed) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
-                message: 'Too many login attempts. Please try again later.',
+                message: 'Demasiados intentos de inicio de sesión. Por favor, intenta nuevamente en 15 minutos.',
                 error_code: 'RATE_LIMIT_EXCEEDED'
             }, {
                 status: 429,
@@ -360,57 +360,77 @@ async function POST(request) {
         if (!validation.success) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
-                message: 'Invalid input format',
+                message: 'Por favor, verifica que el correo electrónico y la contraseña sean válidos.',
                 errors: validation.error.flatten()
             }, {
                 status: 400
             });
         }
         const { email, password } = validation.data;
+        // Verificar intentos de login antes de consultar la base de datos
         const attemptCheck = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$login$2d$attempts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["checkLoginAttempts"])(email);
         if (!attemptCheck.allowed) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
-                message: attemptCheck.message,
+                message: 'Cuenta bloqueada temporalmente. Has excedido el número máximo de intentos (3). Intenta nuevamente en 15 minutos.',
                 attemptsLeft: 0,
+                locked: true,
                 error_code: 'ACCOUNT_LOCKED'
             }, {
                 status: 429
             });
         }
+        // Buscar usuario en la base de datos
         const users = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
       SELECT u.id, u.password_hash, u.email, u.role_id, u.first_name, u.last_name, u.active, r.name as role_name
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
       WHERE LOWER(u.email) = LOWER(${email}) AND (u.active = true OR u.active IS NULL)
     `;
+        // Usuario no existe
         if (users.length === 0) {
             (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$login$2d$attempts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["recordFailedAttempt"])(email);
+            const remainingAttempts = Math.max(0, attemptCheck.attemptsLeft - 1);
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
-                message: 'Invalid credentials',
-                attemptsLeft: attemptCheck.attemptsLeft - 1,
+                message: remainingAttempts > 0 ? `Credenciales inválidas. Te quedan ${remainingAttempts} ${remainingAttempts === 1 ? 'intento' : 'intentos'}.` : 'Cuenta bloqueada. Has excedido el número máximo de intentos.',
+                attemptsLeft: remainingAttempts,
+                locked: remainingAttempts === 0,
                 error_code: 'INVALID_CREDENTIALS'
             }, {
                 status: 401
             });
         }
         const user = users[0];
+        // Verificar contraseña
         const passwordMatch = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$password$2d$hash$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["verifyPassword"])(password, user.password_hash);
         if (!passwordMatch) {
             (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$login$2d$attempts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["recordFailedAttempt"])(email);
+            const remainingAttempts = Math.max(0, attemptCheck.attemptsLeft - 1);
+            // Registrar intento fallido en audit log (usuario existe pero contraseña incorrecta)
+            try {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+          INSERT INTO login_audit_log (user_id, email, ip_address, success, timestamp)
+          VALUES (${user.id}, ${email}, ${ip}, false, NOW())
+        `;
+            } catch (auditError) {
+                console.error('[Audit Log Error]', auditError);
+            }
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
-                message: 'Invalid credentials',
-                attemptsLeft: attemptCheck.attemptsLeft - 1,
+                message: remainingAttempts > 0 ? `Credenciales inválidas. Te quedan ${remainingAttempts} ${remainingAttempts === 1 ? 'intento' : 'intentos'}.` : 'Cuenta bloqueada. Has excedido el número máximo de intentos.',
+                attemptsLeft: remainingAttempts,
+                locked: remainingAttempts === 0,
                 error_code: 'INVALID_CREDENTIALS'
             }, {
                 status: 401
             });
         }
+        // Login exitoso
         (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$login$2d$attempts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["clearLoginAttempts"])(email);
         const sessionToken = __TURBOPACK__imported__module__$5b$externals$5d2f$crypto__$5b$external$5d$__$28$crypto$2c$__cjs$29$__["randomBytes"](32).toString('hex');
         const sessionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        // Registrar login exitoso en audit log
         try {
             await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
         INSERT INTO login_audit_log (user_id, email, ip_address, success, timestamp)
@@ -421,7 +441,7 @@ async function POST(request) {
         }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: true,
-            message: 'Login successful',
+            message: '¡Bienvenido de nuevo!',
             user: {
                 id: user.id,
                 email: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$input$2d$validation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sanitizeString"])(user.email),
@@ -435,14 +455,14 @@ async function POST(request) {
         }, {
             status: 200,
             headers: {
-                'Set-Cookie': `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${24 * 60 * 60}`
+                'Set-Cookie': `sessionToken=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Max-Age=${24 * 60 * 60}; Path=/`
             }
         });
     } catch (error) {
         console.error('[Login Error]', error);
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: false,
-            message: 'An error occurred during login',
+            message: 'Ha ocurrido un error en el servidor. Por favor, intenta nuevamente más tarde.',
             error_code: 'INTERNAL_SERVER_ERROR'
         }, {
             status: 500
