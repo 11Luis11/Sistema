@@ -31,7 +31,7 @@ interface Product {
   color: string;
   gender: string;
 }
-
+/*Visualizacion de productos*/ 
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
