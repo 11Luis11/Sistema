@@ -12,6 +12,7 @@ interface AddProductFormProps {
 }
 
 export function AddProductForm({ onClose, onSuccess }: AddProductFormProps) {
+  /*Campos para registrar producto */
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
