@@ -248,14 +248,6 @@ curl -X POST http://localhost:3000/api/auth/login \
 # Should be rejected at validation level
 \`\`\`
 
-## Credentials for Testing
-
-| Email | Password | Role |
-|-------|----------|------|
-| admin@yenijeans.com | admin123 | Administrator |
-| gerente@yenijeans.com | gerente123 | Manager |
-| adm_inv@yenijeans.com | adm_inv123 | ADM_INV |
-
 ## Future Security Enhancements
 
 1. **Two-Factor Authentication (2FA)**
@@ -279,8 +271,3 @@ curl -X POST http://localhost:3000/api/auth/login \
    - SOC 2 certification path
    - Regular penetration testing
 
-## Support
-
-For security issues, contact: security@yenijeans.com
-
-Never publicly disclose security vulnerabilities. Follow responsible disclosure practices.
