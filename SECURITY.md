@@ -1,273 +1,128 @@
-# YeniJeans Inventory System - Security Documentation
+# Sistema de Inventario YeniJeans - Documentación de seguridad
 
-## Overview
-This document outlines the security measures implemented in the YeniJeans inventory management system, focusing on OWASP Top 10 protections and industry best practices.
+## Descripción general
+Este documento describe las medidas de seguridad implementadas en el sistema de gestión de inventario de YeniJeans, centrándose en las 10 protecciones principales de OWASP y las mejores prácticas del sector.
 
-## Security Libraries & Dependencies
+## Bibliotecas y dependencias de seguridad
 
-### Core Security Libraries
+### Bibliotecas de seguridad utilizadas
 
-| Library | Version | Purpose | OWASP Protection |
+| Libreria | Version | Proposito | Proteccion OWASP |
 |---------|---------|---------|-----------------|
-| **bcryptjs** | ^2.4.3 | Password hashing with adaptive work factor | A02:2021 - Cryptographic Failures |
-| **zod** | 3.25.76 | Input validation and schema enforcement | A03:2021 - Injection |
-| **node-cache** | ^5.1.2 | In-memory caching for rate limits and auth attempts | A07:2021 - Attack Rate |
-| **helmet** | ^7.1.0 | HTTP security headers | A01:2021 - Broken Access Control |
-| **express-rate-limit** | ^7.1.5 | API rate limiting | A04:2021 - Brute Force |
+| **bcryptjs** | ^2.4.3 | Hash de contraseñas con factor de trabajo adaptativo | A02:2021 - Cryptographic Failures |
+| **zod** | 3.25.76 | Validación de entradas y aplicación de esquemas | A03:2021 - Injection |
+| **node-cache** | ^5.1.2 | Almacenamiento en caché en memoria para límites de velocidad e intentos de autenticación | A07:2021 - Attack Rate |
+| **helmet** | ^7.1.0 | Encabezados de seguridad HTTP | A01:2021 - Broken Access Control |
+| **express-rate-limit** | ^7.1.5 | Limitación de la tasa de API | A04:2021 - Brute Force |
 
-### Built-in Node.js Libraries
+### Bibliotecas Node.js integradas
 
-| Library | Purpose | Usage |
+| Libreria | Proposito | Uso |
 |---------|---------|-------|
-| **crypto** | Cryptographic functions | Session token generation (32-byte random) |
-| **@neondatabase/serverless** | Database client | Secure parameterized queries |
+| **crypto** | Funciones criptográficas | Generación de token de sesión (aleatorio de 32 bytes) |
+| **@neondatabase/serverless** | Cliente de base de datos | Consultas parametrizadas seguras |
 
-## OWASP Top 10 Coverage
+## Cobertura del Top 10 de OWASP
 
 ### A01:2021 - Broken Access Control
-**Implementation:**
-- Role-based access control (RBAC) with three tiers: Administrator, Manager, ADM_INV
-- Endpoint authorization checks before processing requests
-- Session token validation for protected routes
-- API role verification via headers
-
-**Files:**
-- `lib/security/auth-middleware.ts`
-- `app/api/products/route.ts`
+**Implementacion:**
+- Control de acceso basado en roles (RBAC) con tres niveles: Administrador, Gerente, ADM_INV
+- Comprobaciones de autorización de puntos finales antes de procesar las solicitudes
+- Validación de tokens de sesión para rutas protegidas
+- Verificación de roles API a través de encabezados
 
 ### A02:2021 - Cryptographic Failures
-**Implementation:**
-- bcryptjs with 12 salt rounds (adaptive work factor)
-- 32-byte cryptographically secure random tokens
-- Passwords minimum 8 characters with complexity requirements
-- Secure session storage with HttpOnly, Secure, SameSite cookies
-
-**Files:**
-- `lib/security/password-hash.ts`
-- `app/api/auth/login/route.ts`
+**Implementacion:**
+- bcryptjs con 12 rondas de salt (factor de trabajo adaptativo)
+- Tokens aleatorios criptográficamente seguros de 32 bytes
+- Contraseñas de un mínimo de 8 caracteres con requisitos de complejidad
+- Almacenamiento seguro de sesiones con cookies HttpOnly, Secure y SameSite
 
 ### A03:2021 - Injection
-**Implementation:**
-- Parameterized SQL queries only (no string concatenation)
-- Zod schema validation for all inputs
-- Input sanitization for XSS prevention
-- Email and numeric validation
-
-**Files:**
-- `lib/security/input-validation.ts`
-- `lib/database.ts`
-- All API routes use parameterized queries
+**Implementacion:**
+- Solo consultas SQL parametrizadas (sin concatenación de cadenas)
+- Validación del esquema Zod para todas las entradas
+- Desinfección de entradas para la prevención de XSS
+- Validación de correos electrónicos y números
 
 ### A04:2021 - Insecure Design
-**Implementation:**
-- Threat modeling with UML diagrams (included in project docs)
-- Secure by default configurations
-- Input validation before processing
-- Error handling without information disclosure
-
-**Files:**
-- `lib/security/input-validation.ts`
-- All API error handlers return generic messages
+**Implementacion:**
+- Modelado de amenazas con diagramas UML (incluidos en la documentación del proyecto)
+- Configuraciones seguras por defecto
+- Validación de entradas antes del procesamiento
+- Gestión de errores sin divulgación de información
 
 ### A05:2021 - Security Misconfiguration
-**Implementation:**
-- Environment variables for sensitive configuration
-- Secure default headers (will use helmet middleware)
-- HTTPS enforced in production (Next.js automatic)
-- No debug information in production responses
+**Implementacion:**
+- Variables de entorno para configuraciones confidenciales
+- Encabezados predeterminados seguros (utilizará middleware helmet)
+- HTTPS obligatorio en producción (Next.js automático)
+- Sin información de depuración en las respuestas de producción
 
 ### A06:2021 - Vulnerable and Outdated Components
-**Implementation:**
-- Regular dependency updates
-- Security-focused library selection
-- No deprecated packages
-- Verified integrity of all dependencies
+**Implementacion:**
+- Actualizaciones periódicas de las dependencias
+- Selección de bibliotecas centrada en la seguridad
+- Sin paquetes obsoletos
+- Integridad verificada de todas las dependencias
 
 ### A07:2021 - Authentication Failures
-**Implementation:**
-- 3-attempt account lockout with 15-minute timeout
-- Secure password hashing with bcryptjs (12 rounds)
-- Session token expiration (24 hours)
-- Audit logging for login attempts
-
-**Files:**
-- `lib/security/login-attempts.ts`
-- `app/api/auth/login/route.ts`
+**Implementacion:**
+- Bloqueo de la cuenta tras 3 intentos fallidos con un tiempo de espera de 15 minutos
+- Hash seguro de contraseñas con bcryptjs (12 rondas)
+- Caducidad del token de sesión (24 horas)
+- Registro de auditoría de los intentos de inicio de sesión
 
 ### A08:2021 - Software and Data Integrity Failures
-**Implementation:**
-- Integrity check for session tokens
-- CSRF token validation for state-changing operations
-- Audit trails for critical operations
-
-**Files:**
-- `lib/security/csrf-protection.ts`
+**Implementacion:**
+- Comprobación de integridad de los tokens de sesión
+- Validación de tokens CSRF para operaciones que modifican el estado
+- Registros de auditoría para operaciones críticas
 
 ### A09:2021 - Logging and Monitoring Failures
 **Implementation:**
-- Login audit log in database
-- Failed login attempt tracking
-- Error logging with context
-- Request IP tracking
-
-**Database Tables:**
-- `login_audit_log` - tracks all login attempts
-- `audit_logs` - tracks all product operations
+- Registro de auditoría de inicio de sesión en la base de datos
+- Seguimiento de intentos fallidos de inicio de sesión
+- Registro de errores con contexto
+- Seguimiento de la IP de la solicitud
 
 ### A10:2021 - Server-Side Request Forgery (SSRF)
 **Implementation:**
-- No external requests from user input
-- Validated internal API calls only
-- Database-only backend requests
+- Sin solicitudes externas procedentes de entradas del usuario
+- Solo llamadas API internas validadas
+- Solicitudes de backend solo a la base de datos
 
-## Authentication Flow
+### Conexion
+- Utiliza Neon PostgreSQL sin servidor
+- Agrupación de conexiones para mejorar el rendimiento
+- Cifrado SSL/TLS para el tránsito
 
-\`\`\`
-User Input
-    ↓
-Input Validation (Zod)
-    ↓
-Rate Limiting Check
-    ↓
-Login Attempts Check
-    ↓
-Database Query (Parameterized)
-    ↓
-Password Verification (bcryptjs)
-    ↓
-Session Token Generation (32-byte random)
-    ↓
-Audit Log Entry
-    ↓
-Response with Secure Cookie
-\`\`\`
+### Protección de datos
+- Políticas de seguridad a nivel de fila (RLS) recomendadas para Neon
+- Contraseñas cifradas con sal
+- Registros de auditoría para modificaciones
 
-## Session Management
 
-- **Token Length:** 32 bytes (256 bits) cryptographically secure random
-- **Token Expiry:** 24 hours
-- **Storage:** HttpOnly, Secure, SameSite=Strict cookies
-- **Validation:** Checked on every protected route
+## Mejoras futuras en materia de seguridad
 
-## Rate Limiting
+1. **Autenticación de dos factores (2FA)**
+   - TOTP a través de Google Authenticator.
+   - Códigos de respaldo por SMS.
 
-### API Rate Limits
-- **General API:** 30 requests per minute per IP
-- **Login Endpoint:** 10 attempts per 15 minutes per IP
-- **Products Endpoint:** 30 requests per minute per IP
+2. **Detección avanzada de amenazas**
+   - Detección de anomalías en los patrones de inicio de sesión.
+   - Bloqueo geográfico para ubicaciones sospechosas.
 
-## Password Requirements
+3. **Cifrado de extremo a extremo**
+   - Cifrado de datos confidenciales en reposo
+   - Cifrado a nivel de campo para PII
 
-- **Minimum Length:** 8 characters
-- **Hashing:** bcryptjs with 12 salt rounds (adaptive work factor)
-- **Storage:** Never in plaintext, only hashed values
-- **Comparison:** Timing-safe comparison (bcryptjs)
+4. **Supervisión de la seguridad**
+   - Alertas en tiempo real para actividades sospechosas
+   - Integración SIEM
 
-## Database Security
-
-### Connection
-- Uses Neon serverless PostgreSQL
-- Connection pooling for performance
-- SSL/TLS encryption for transit
-
-### Query Safety
-\`\`\`typescript
-// ✅ SAFE - Parameterized query
-await sql('SELECT * FROM users WHERE email = $1', [email]);
-
-// ❌ UNSAFE - String concatenation
-await sql(`SELECT * FROM users WHERE email = '${email}'`);
-\`\`\`
-
-### Data Protection
-- Row-level security (RLS) policies recommended for Neon
-- Encrypted passwords with salt
-- Audit trails for modifications
-
-## Input Validation Rules
-
-| Field | Validation | Purpose |
-|-------|-----------|---------|
-| Email | RFC 5322 format | Prevent injection, ensure valid format |
-| Password | Min 8 chars, alphanumeric | Enforce complexity without limitations |
-| Product Code | Alphanumeric, 1-50 chars | Prevent injection, normalize format |
-| Price | Positive number | Prevent negative/invalid pricing |
-| Stock | Non-negative integer | Prevent invalid inventory values |
-
-## Error Handling
-
-### Secure Error Messages
-- Never expose database structure
-- Never leak internal paths
-- Generic messages for authentication failures
-- Specific messages for validation errors (safe fields only)
-
-### Example
-\`\`\`
-❌ Error: "User 'john@example.com' not found in users table"
-✅ Error: "Invalid credentials"
-\`\`\`
-
-## Deployment Security Checklist
-
-- [ ] Set all environment variables (.env in production)
-- [ ] Enable HTTPS only (Next.js automatic on Vercel)
-- [ ] Set secure cookie flags
-- [ ] Enable CORS only for trusted origins
-- [ ] Set proper security headers (Content-Security-Policy, etc.)
-- [ ] Enable request logging and monitoring
-- [ ] Regular dependency updates (npm audit)
-- [ ] Database backups enabled
-- [ ] Regular security testing
-
-## Testing
-
-### Database Connection Test
-\`\`\`bash
-npm run test:db
-\`\`\`
-
-### Login Security Test
-\`\`\`bash
-# Test rate limiting
-for i in {1..5}; do
-  curl -X POST http://localhost:3000/api/auth/login \
-    -H "Content-Type: application/json" \
-    -d '{"email":"test@test.com","password":"wrong"}'
-  sleep 1
-done
-# Should lock after 3 attempts
-\`\`\`
-
-### Input Validation Test
-\`\`\`bash
-# Test SQL injection prevention
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@test.com'; DROP TABLE users;--","password":"test"}'
-# Should be rejected at validation level
-\`\`\`
-
-## Future Security Enhancements
-
-1. **Two-Factor Authentication (2FA)**
-   - TOTP via Google Authenticator
-   - SMS backup codes
-
-2. **Advanced Threat Detection**
-   - Anomaly detection for login patterns
-   - Geo-blocking for suspicious locations
-
-3. **End-to-End Encryption**
-   - Sensitive data encryption at rest
-   - Field-level encryption for PII
-
-4. **Security Monitoring**
-   - Real-time alerting for suspicious activity
-   - SIEM integration
-
-5. **Compliance**
-   - GDPR compliance
-   - SOC 2 certification path
-   - Regular penetration testing
+5. **Cumplimiento normativo**
+   - Cumplimiento del RGPD
+   - Certificación SOC 2
+   - Pruebas de penetración periódicas
 
