@@ -59,3 +59,7 @@ export function SalesDashboardTab() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(30);
   const [error, setError] = useState('');
+
+useEffect(() => {
+  fetchData();
+}, [period]);
