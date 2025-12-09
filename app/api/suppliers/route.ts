@@ -3,19 +3,19 @@ import { apiLimiter } from '@/lib/security/rate-limit';
 import { NextRequest, NextResponse } from 'next/server';
 
 function getRoleFromRequest(request: NextRequest): string | null {
-  return request.headers.get('X-User-Role') || null;
+return request.headers.get('X-User-Role') || null;
 }
 
 export async function GET(request: NextRequest) {
-  try {
+try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const rateLimitCheck = apiLimiter.check(`suppliers:get:${ip}`);
 
     if (!rateLimitCheck.allowed) {
-      return NextResponse.json(
+    return NextResponse.json(
         { success: false, message: 'Rate limit exceeded' },
         { status: 429 }
-      );
+    );
     }
 
     const { searchParams } = new URL(request.url);
@@ -25,24 +25,45 @@ export async function GET(request: NextRequest) {
     const searchPattern = `%${search}%`;
 
     const suppliers = await sql`
-      SELECT 
+    SELECT 
         s.*,
         COUNT(ps.product_id) as products_count
-      FROM suppliers s
-      LEFT JOIN product_suppliers ps ON s.id = ps.supplier_id
-      WHERE s.active = true 
+    FROM suppliers s
+    LEFT JOIN product_suppliers ps ON s.id = ps.supplier_id
+    WHERE s.active = true 
         AND (s.name ILIKE ${searchPattern} OR s.code ILIKE ${searchPattern})
-      GROUP BY s.id
-      ORDER BY s.created_at DESC
-      LIMIT ${limit}
+    GROUP BY s.id
+    ORDER BY s.created_at DESC
+    LIMIT ${limit}
     `;
 
     return NextResponse.json({ success: true, suppliers });
-  } catch (error) {
+} catch (error) {
     console.error('[Suppliers GET Error]', error);
     return NextResponse.json(
-      { success: false, message: 'Error fetching suppliers' },
-      { status: 500 }
+    { success: false, message: 'Error fetching suppliers' },
+    { status: 500 }
     );
-  }
+    }
 }
+
+export async function POST(request: NextRequest) {
+try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitCheck = apiLimiter.check(`suppliers:post:${ip}`);
+
+    if (!rateLimitCheck.allowed) {
+            return NextResponse.json(
+        { success: false, message: 'Rate limit exceeded' },
+        { status: 429 }
+    );
+    }
+
+    const role = getRoleFromRequest(request);
+
+    if (!['Administrator', 'Manager'].includes(role || '')) {
+    return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 403 }
+    );
+    }
