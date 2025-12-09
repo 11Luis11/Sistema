@@ -200,6 +200,11 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$serv
 function getRoleFromRequest(request) {
     return request.headers.get('X-User-Role') || null;
 }
+// Helper to get user ID from header
+function getUserIdFromRequest(request) {
+    const userIdHeader = request.headers.get('X-User-Id');
+    return userIdHeader ? parseInt(userIdHeader) : null;
+}
 // Helper: extrae ID desde URL con soporte para /api/products/123 y /api/products?id=123
 function extractId(request) {
     const url = new URL(request.url);
@@ -228,62 +233,30 @@ async function GET(request) {
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search') || '';
         const categoryId = searchParams.get('categoryId');
+        const limit = parseInt(searchParams.get('limit') || '100');
+        const offset = parseInt(searchParams.get('offset') || '0');
         const searchPattern = `%${search}%`;
         const category = categoryId ? parseInt(categoryId) : null;
-        let products;
-        if (search && category) {
-            products = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-        SELECT 
-          p.id, p.code, p.name, p.description, p.price, p.current_stock,
-          p.size, p.color, p.gender, c.name AS category,
-          p.created_at, p.updated_at
-        FROM products p
-        JOIN categories c ON p.category_id = c.id
-        WHERE p.active = true
-          AND (p.name ILIKE ${searchPattern} OR p.code ILIKE ${searchPattern})
-          AND p.category_id = ${category}
-        ORDER BY p.created_at DESC
-        LIMIT 1000
-      `;
-        } else if (search) {
-            products = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-        SELECT 
-          p.id, p.code, p.name, p.description, p.price, p.current_stock,
-          p.size, p.color, p.gender, c.name AS category,
-          p.created_at, p.updated_at
-        FROM products p
-        JOIN categories c ON p.category_id = c.id
-        WHERE p.active = true
-          AND (p.name ILIKE ${searchPattern} OR p.code ILIKE ${searchPattern})
-        ORDER BY p.created_at DESC
-        LIMIT 1000
-      `;
-        } else if (category) {
-            products = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-        SELECT 
-          p.id, p.code, p.name, p.description, p.price, p.current_stock,
-          p.size, p.color, p.gender, c.name AS category,
-          p.created_at, p.updated_at
-        FROM products p
-        JOIN categories c ON p.category_id = c.id
-        WHERE p.active = true
-          AND p.category_id = ${category}
-        ORDER BY p.created_at DESC
-        LIMIT 1000
-      `;
-        } else {
-            products = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-        SELECT 
-          p.id, p.code, p.name, p.description, p.price, p.current_stock,
-          p.size, p.color, p.gender, c.name AS category,
-          p.created_at, p.updated_at
-        FROM products p
-        JOIN categories c ON p.category_id = c.id
-        WHERE p.active = true
-        ORDER BY p.created_at DESC
-        LIMIT 1000
-      `;
+        // Construcción de query más eficiente usando una sola consulta con condiciones dinámicas
+        let whereConditions = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`p.active = true`;
+        if (search) {
+            whereConditions = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`${whereConditions} AND (p.name ILIKE ${searchPattern} OR p.code ILIKE ${searchPattern})`;
         }
+        if (category) {
+            whereConditions = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`${whereConditions} AND p.category_id = ${category}`;
+        }
+        const products = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+      SELECT 
+        p.id, p.code, p.name, p.description, p.price, p.current_stock,
+        p.size, p.color, p.gender, c.name AS category,
+        p.created_at, p.updated_at
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.id
+      WHERE ${whereConditions}
+      ORDER BY p.created_at DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `;
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: true,
             products
@@ -325,6 +298,17 @@ async function POST(request) {
                 status: 403
             });
         }
+        // Obtener user_id del header
+        const userId = getUserIdFromRequest(request);
+        if (!userId) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                success: false,
+                message: 'User ID required',
+                error_code: 'USER_ID_REQUIRED'
+            }, {
+                status: 400
+            });
+        }
         const body = await request.json();
         const validation = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$input$2d$validation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["validateProduct"])(body);
         if (!validation.success) {
@@ -359,15 +343,35 @@ async function POST(request) {
                 status: 409
             });
         }
+        const initialStock = stock || 0;
+        // Insertar producto
         const result = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
       INSERT INTO products (code, name, description, category_id, price, size, color, gender, current_stock, active)
-      VALUES (${code}, ${name}, ${description}, ${categoryId}, ${priceValue}, ${size}, ${color}, ${gender}, ${stock || 0}, true)
+      VALUES (${code}, ${name}, ${description}, ${categoryId}, ${priceValue}, ${size}, ${color}, ${gender}, ${initialStock}, true)
       RETURNING *
     `;
+        const newProduct = result[0];
+        // Registrar movimiento inicial solo si hay stock
+        if (initialStock > 0) {
+            try {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+          INSERT INTO inventory_movements (
+            product_id, user_id, movement_type, quantity, previous_stock, new_stock, reason
+          )
+          VALUES (
+            ${newProduct.id}, ${userId}, 'ENTRADA', ${initialStock}, 0, ${initialStock}, 'Stock inicial del producto'
+          )
+        `;
+            } catch (movementError) {
+                console.error('[Movement Insert Error]', movementError);
+            // Si falla el movimiento, no fallar todo - el producto ya está creado
+            // Podrías optar por eliminar el producto aquí si quieres que sea atómico
+            }
+        }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: true,
             message: 'Product created successfully',
-            product: result[0]
+            product: newProduct
         }, {
             status: 201
         });

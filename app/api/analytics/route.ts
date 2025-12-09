@@ -102,6 +102,8 @@ export async function GET(request: NextRequest) {
       ORDER BY total DESC
     `;
 
+    console.log('[Analytics] Payment Methods:', salesByPaymentMethod);
+
     // 6. Productos por categoría
     const productsByCategory = await sql`
       SELECT 

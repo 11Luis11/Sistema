@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Obtener parámetro limit de la query
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '100');
+
     // Obtener movimientos con información de producto y usuario
     const movements = await sql`
       SELECT 
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest) {
       JOIN products p ON im.product_id = p.id
       JOIN users u ON im.user_id = u.id
       ORDER BY im.created_at DESC
-      LIMIT 500
+      LIMIT ${limit}
     `;
 
     return NextResponse.json({

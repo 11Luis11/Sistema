@@ -2,7 +2,64 @@ import { sql } from '@/lib/database';
 import { validateProduct } from '@/lib/security/input-validation';
 import { apiLimiter } from '@/lib/security/rate-limit';
 import { NextRequest, NextResponse } from 'next/server';
+// ... (mantén todo lo demás igual)
 
+export async function GET(request: NextRequest) {
+  try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitCheck = apiLimiter.check(`products:get:${ip}`);
+
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Rate limit exceeded' },
+        { status: 429 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || '';
+    const categoryId = searchParams.get('categoryId');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    const searchPattern = `%${search}%`;
+    const category = categoryId ? parseInt(categoryId) : null;
+
+    // Construcción de query con active = true
+    let whereConditions = sql`p.active = true`;
+    
+    if (search) {
+      whereConditions = sql`${whereConditions} AND (p.name ILIKE ${searchPattern} OR p.code ILIKE ${searchPattern})`;
+    }
+    
+    if (category) {
+      whereConditions = sql`${whereConditions} AND p.category_id = ${category}`;
+    }
+
+    const products = await sql`
+      SELECT 
+        p.id, p.code, p.name, p.description, p.price, p.current_stock,
+        p.size, p.color, p.gender, c.name AS category,
+        p.created_at, p.updated_at
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.id
+      WHERE ${whereConditions}
+      ORDER BY p.created_at DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `;
+
+    return NextResponse.json({ success: true, products });
+  } catch (error) {
+    console.error('[Products GET Error]', error);
+    return NextResponse.json(
+      { success: false, message: 'Error fetching products', error_code: 'FETCH_ERROR' },
+      { status: 500 }
+    );
+  }
+}
+
+// ... (mantén POST y DELETE igual)
 function getRoleFromRequest(request: NextRequest): string | null {
   return request.headers.get('X-User-Role') || null;
 }
@@ -181,23 +238,25 @@ export async function DELETE(
 
     const productId = Number(id);
 
-    // DELETE DEFINITIVO
+    // SOFT DELETE: cambiar active a false en lugar de borrar
     const result = await sql`
-      DELETE FROM products
-      WHERE id = ${productId}
-      RETURNING id
+      UPDATE products
+      SET active = false, updated_at = NOW()
+      WHERE id = ${productId} AND active = true
+      RETURNING id, name
     `;
 
     if (result.length === 0) {
       return NextResponse.json(
-        { success: false, message: 'Product not found', error_code: 'NOT_FOUND' },
+        { success: false, message: 'Product not found or already deleted', error_code: 'NOT_FOUND' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Product deleted permanently',
+      message: 'Product deleted successfully',
+      product: result[0]
     });
   } catch (error) {
     console.error('[Delete Product Error]', error);

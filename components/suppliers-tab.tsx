@@ -38,7 +38,6 @@ export function SuppliersTab() {
     taxId: '',
     notes: ''
   });
- 
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -90,7 +89,6 @@ export function SuppliersTab() {
         return;
       }
 
-      // LIMPIEZA POST ENVÍO
       alert('Proveedor creado exitosamente');
       setFormData({
         code: '',
@@ -106,14 +104,13 @@ export function SuppliersTab() {
       });
       setShowForm(false);
       fetchSuppliers();
-
     } catch (err) {
       setError('Error al conectar con el servidor');
       console.error(err);
     }
   }
 
-   async function handleDelete(id: number) {
+  async function handleDelete(id: number) {
     if (!confirm('¿Está seguro que desea eliminar este proveedor?')) return;
 
     try {
@@ -367,6 +364,4 @@ export function SuppliersTab() {
       )}
     </div>
   );
-
-
 }

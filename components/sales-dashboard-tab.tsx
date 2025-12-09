@@ -60,11 +60,11 @@ export function SalesDashboardTab() {
   const [period, setPeriod] = useState(30);
   const [error, setError] = useState('');
 
-useEffect(() => {
-  fetchData();
-}, [period]);
+  useEffect(() => {
+    fetchData();
+  }, [period]);
 
-async function fetchData() {
+  async function fetchData() {
     setLoading(true);
     setError('');
     
@@ -109,7 +109,7 @@ async function fetchData() {
     }
   }
 
-const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     try {
       const date = new Date(dateString);
@@ -124,7 +124,7 @@ const formatDate = (dateString: string) => {
       return '-';
     }
   };
-  
+
   const formatCurrency = (amount: number | string | undefined | null) => {
     if (amount === undefined || amount === null) return 'S/ 0.00';
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -165,6 +165,7 @@ const formatDate = (dateString: string) => {
         return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
     }
   };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -178,7 +179,9 @@ const formatDate = (dateString: string) => {
       </div>
     );
   }
-    const totalSales = toNumber(analytics?.summary?.totalSales);
+
+  // Valores seguros con conversión
+  const totalSales = toNumber(analytics?.summary?.totalSales);
   const totalRevenue = toNumber(analytics?.summary?.totalRevenue);
   const averageSale = toNumber(analytics?.summary?.averageSale);
 
@@ -283,7 +286,8 @@ const formatDate = (dateString: string) => {
           </div>
         </Card>
       </div>
-      
+
+      {/* Charts Row */}
       {analytics && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Productos */}
@@ -311,7 +315,8 @@ const formatDate = (dateString: string) => {
               </div>
             )}
           </Card>
-      
+
+          {/* Ventas por Método de Pago */}
           <Card className="p-6">
             <h3 className="font-bold text-lg mb-4 text-foreground">Ventas por Método de Pago</h3>
             {analytics.sales?.byPaymentMethod && analytics.sales.byPaymentMethod.length > 0 ? (
@@ -352,3 +357,65 @@ const formatDate = (dateString: string) => {
           </Card>
         </div>
       )}
+
+      {/* Tabla de Ventas Recientes */}
+      <Card className="overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h3 className="font-bold text-lg text-foreground">Ventas Recientes</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted border-b border-border">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Código</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Cliente</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Items</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Total</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Método Pago</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Vendedor</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sales.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
+                    <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No hay ventas registradas en este período</p>
+                    <p className="text-xs mt-2">Intenta ajustar el período de tiempo</p>
+                  </td>
+                </tr>
+              ) : (
+                sales.map((sale) => (
+                  <tr key={sale.id} className="border-b border-border hover:bg-muted/50 transition">
+                    <td className="px-6 py-4 text-sm font-medium text-foreground">{sale.sale_code || '-'}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="font-medium text-foreground">{sale.customer_name || 'Cliente general'}</div>
+                      {sale.customer_email && (
+                        <div className="text-xs text-muted-foreground">{sale.customer_email}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{toNumber(sale.items_count)} items</td>
+                    <td className="px-6 py-4 text-sm font-bold text-foreground">
+                      {formatCurrency(sale.total_amount)}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${getPaymentMethodColor(sale.payment_method)}`}>
+                        {getPaymentMethodIcon(sale.payment_method)}
+                        {sale.payment_method || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{sale.user_name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {formatDate(sale.created_at)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}

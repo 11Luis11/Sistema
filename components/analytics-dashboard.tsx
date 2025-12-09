@@ -67,11 +67,11 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(30);
 
- useEffect(() => {
+  useEffect(() => {
     fetchAnalytics();
   }, [period]);
 
-async function fetchAnalytics() {
+  async function fetchAnalytics() {
     try {
       setLoading(true);
       const token = localStorage.getItem('sessionToken');
@@ -93,7 +93,7 @@ async function fetchAnalytics() {
     }
   }
 
- if (loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-muted-foreground">Cargando análisis...</div>
@@ -101,7 +101,7 @@ async function fetchAnalytics() {
     );
   }
 
-if (!analytics) {
+  if (!analytics) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-muted-foreground">No hay datos disponibles</div>
@@ -109,7 +109,7 @@ if (!analytics) {
     );
   }
 
-const paymentMethodData = [
+  const paymentMethodData = [
     { name: 'Efectivo', value: analytics.sales.byPaymentMethod.cash },
     { name: 'Tarjeta', value: analytics.sales.byPaymentMethod.card },
     { name: 'Transferencia', value: analytics.sales.byPaymentMethod.transfer },
@@ -200,75 +200,3 @@ const paymentMethodData = [
     </div>
   );
 }
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

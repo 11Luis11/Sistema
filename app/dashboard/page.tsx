@@ -1,15 +1,18 @@
 'use client';
-
+import { SalesRegistrationTab } from '@/components/sales-registration-tab';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Edit2, Trash2, Plus, LogOut, Package, Users, History, TrendingUp, TrendingDown } from 'lucide-react';
+import { Edit2, Trash2, Plus, LogOut, Package, Users, History, TrendingUp, ShoppingCart, Truck } from 'lucide-react';
 import { AddProductForm } from '@/components/add-product-form';
 import { EditProductForm } from '@/components/edit-product-form';
 import { UserManagementTab } from '@/components/user-management-tab';
+import { SuppliersTab } from '@/components/suppliers-tab';
+import { SalesDashboardTab } from '@/components/sales-dashboard-tab';
+
 
 interface User {
   id: number;
@@ -57,6 +60,7 @@ export default function Dashboard() {
   const [movementSearchTerm, setMovementSearchTerm] = useState('');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState('products');
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -68,26 +72,22 @@ export default function Dashboard() {
     const userData = JSON.parse(userStr);
     setUser(userData);
     
-    // OPTIMIZACIÓN: Cargar productos y movimientos en paralelo
     fetchDataInParallel();
   }, [router]);
 
-  // Función optimizada para cargar datos en paralelo
   async function fetchDataInParallel() {
     try {
       const token = localStorage.getItem('sessionToken');
       
-      // Ejecutar ambas peticiones AL MISMO TIEMPO con límite de 50 registros
       const [productsResponse, movementsResponse] = await Promise.all([
-        fetch('/api/products?limit=50'),
-        fetch('/api/inventory-movements?limit=50', {
+        fetch('/api/products?limit=100'),
+        fetch('/api/inventory-movements?limit=100', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
       ]);
 
-      // Procesar respuestas en paralelo
       const [productsData, movementsData] = await Promise.all([
         productsResponse.json(),
         movementsResponse.json()
@@ -105,35 +105,6 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
       setLoadingMovements(false);
-    }
-  }
-
-  async function fetchProducts() {
-    try {
-      const response = await fetch('/api/products?limit=100');
-      const data = await response.json();
-      if (data.success) {
-        setProducts(data.products);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  }
-
-  async function fetchMovements() {
-    try {
-      const token = localStorage.getItem('sessionToken');
-      const response = await fetch('/api/inventory-movements?limit=100', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setMovements(data.movements);
-      }
-    } catch (error) {
-      console.error('Error fetching movements:', error);
     }
   }
 
@@ -195,13 +166,13 @@ export default function Dashboard() {
   const getMovementTypeColor = (type: string) => {
     switch (type) {
       case 'ENTRADA':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
       case 'SALIDA':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
       case 'AJUSTE':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
       case 'DEVOLUCION':
-        return 'bg-purple-100 text-purple-700';
+        return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -213,7 +184,7 @@ export default function Dashboard() {
       case 'DEVOLUCION':
         return <TrendingUp className="w-4 h-4" />;
       case 'SALIDA':
-        return <TrendingDown className="w-4 h-4" />;
+        return <TrendingUp className="w-4 h-4 rotate-180" />;
       default:
         return null;
     }
@@ -239,7 +210,7 @@ export default function Dashboard() {
             <Package className="w-8 h-8 text-primary" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">YeniJeans</h1>
-              <p className="text-xs text-muted-foreground">Control de Inventario</p>
+              <p className="text-xs text-muted-foreground">Sistema de Gestión Empresarial</p>
             </div>
           </div>
           
@@ -248,7 +219,7 @@ export default function Dashboard() {
               <p className="text-sm font-medium text-foreground">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-xs text-muted-foreground font-semibold text-primary">{user?.role}</p>
+              <p className="text-xs text-primary font-semibold">{user?.role}</p>
             </div>
             <Button
               onClick={handleLogout}
@@ -265,20 +236,32 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <Tabs defaultValue="products" className="w-full">
-          <TabsList className={`grid w-full ${canManageUsers ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-8`}>
-            <TabsTrigger value="products" className="flex items-center gap-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-2 mb-8 h-auto">
+            <TabsTrigger value="products" className="flex items-center gap-2 py-3">
               <Package className="w-4 h-4" />
-              Productos
+              <span className="hidden sm:inline">Inventario</span>
             </TabsTrigger>
-            <TabsTrigger value="movements" className="flex items-center gap-2">
+            <TabsTrigger value="sales" className="flex items-center gap-2 py-3">
+              <ShoppingCart className="w-4 h-4" />
+              <span className="hidden sm:inline">Ventas</span>
+            </TabsTrigger>
+            <TabsTrigger value="sales-dashboard" className="flex items-center gap-2 py-3">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="suppliers" className="flex items-center gap-2 py-3">
+              <Truck className="w-4 h-4" />
+              <span className="hidden sm:inline">Proveedores</span>
+            </TabsTrigger>
+            <TabsTrigger value="movements" className="flex items-center gap-2 py-3">
               <History className="w-4 h-4" />
-              Historial de Movimientos
+              <span className="hidden sm:inline">Historial</span>
             </TabsTrigger>
             {canManageUsers && (
-              <TabsTrigger value="users" className="flex items-center gap-2">
+              <TabsTrigger value="users" className="flex items-center gap-2 py-3">
                 <Users className="w-4 h-4" />
-                Gestionar Usuarios
+                <span className="hidden sm:inline">Usuarios</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -287,8 +270,8 @@ export default function Dashboard() {
           <TabsContent value="products" className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-foreground mb-2">Productos</h2>
-                <p className="text-muted-foreground">Gestiona el inventario de YeniJeans</p>
+                <h2 className="text-3xl font-bold text-foreground mb-2">Gestión de Inventario</h2>
+                <p className="text-muted-foreground">Administra los productos de YeniJeans</p>
               </div>
               {canManageProducts && (
                 <Button
@@ -301,7 +284,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Search */}
             <Card className="p-6">
               <Input
                 placeholder="Buscar por nombre o código..."
@@ -332,7 +314,6 @@ export default function Dashboard() {
               />
             )}
 
-            {/* Products Table */}
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -371,10 +352,10 @@ export default function Dashboard() {
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                               product.current_stock > 10
-                                ? 'bg-green-100 text-green-700'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                                 : product.current_stock > 0
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-red-100 text-red-700'
+                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
                             }`}>
                               {product.current_stock}
                             </span>
@@ -410,6 +391,21 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
+          {/* Sales Registration Tab */}
+          <TabsContent value="sales">
+            <SalesRegistrationTab onSaleComplete={fetchDataInParallel} />
+          </TabsContent>
+
+          {/* Sales Dashboard Tab */}
+          <TabsContent value="sales-dashboard">
+            <SalesDashboardTab />
+          </TabsContent>
+
+          {/* Suppliers Tab */}
+          <TabsContent value="suppliers">
+            <SuppliersTab />
+          </TabsContent>
+
           {/* Movements Tab */}
           <TabsContent value="movements" className="space-y-8">
             <div className="flex items-center justify-between">
@@ -419,7 +415,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Search */}
             <Card className="p-6">
               <Input
                 placeholder="Buscar por producto, código o tipo de movimiento..."
@@ -429,7 +424,6 @@ export default function Dashboard() {
               />
             </Card>
 
-            {/* Movements Table */}
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
