@@ -283,3 +283,72 @@ const formatDate = (dateString: string) => {
           </div>
         </Card>
       </div>
+      
+      {analytics && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Productos */}
+          <Card className="p-6">
+            <h3 className="font-bold text-lg mb-4 text-foreground">Top Productos Vendidos</h3>
+            {analytics.sales?.topProducts && analytics.sales.topProducts.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.sales.topProducts.map((product, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{product.product_name || 'Sin nombre'}</p>
+                      <p className="text-xs text-muted-foreground">{product.product_code || '-'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-foreground">{toNumber(product.total_sold)} unidades</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(product.total_revenue)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground">
+                <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No hay datos de productos vendidos</p>
+              </div>
+            )}
+          </Card>
+      
+          <Card className="p-6">
+            <h3 className="font-bold text-lg mb-4 text-foreground">Ventas por Método de Pago</h3>
+            {analytics.sales?.byPaymentMethod && analytics.sales.byPaymentMethod.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.sales.byPaymentMethod.map((method, index) => {
+                  const total = toNumber(method.total);
+                  const revenue = totalRevenue || 1;
+                  const percentage = revenue > 0 ? (total / revenue) * 100 : 0;
+                  
+                  return (
+                    <div key={index}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {getPaymentMethodIcon(method.payment_method)}
+                          <span className="font-medium text-foreground">{method.payment_method || 'No especificado'}</span>
+                        </div>
+                        <span className="font-bold text-foreground">{formatCurrency(total)}</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {toNumber(method.count)} ventas ({percentage.toFixed(1)}%)
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground">
+                <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No hay datos de métodos de pago</p>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
