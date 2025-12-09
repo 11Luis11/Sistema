@@ -59,6 +59,7 @@ interface Analytics {
     totalValue: number;
   };
 }
+
 const COLORS = ['#e91e63', '#9c27b0', '#3f51b5', '#03a9f4', '#009688', '#8bc34a'];
 
 export function AnalyticsDashboard() {
@@ -70,7 +71,7 @@ export function AnalyticsDashboard() {
     fetchAnalytics();
   }, [period]);
 
-sync function fetchAnalytics() {
+async function fetchAnalytics() {
     try {
       setLoading(true);
       const token = localStorage.getItem('sessionToken');
@@ -114,14 +115,9 @@ const paymentMethodData = [
     { name: 'Transferencia', value: analytics.sales.byPaymentMethod.transfer },
   ].filter(item => item.value > 0);
 
-
   return (
     <div className="space-y-6">
-
-      {/* -------------------------------------
-         DAILY 5 – ADDERLY
-         Header del dashboard + selector de rango de tiempo.
-      ------------------------------------- */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-foreground mb-2">Dashboard Analítico</h2>
@@ -138,25 +134,23 @@ const paymentMethodData = [
         </select>
       </div>
 
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="flex flex-col items-center justify-center p-4">
           <DollarSign className="w-6 h-6 mb-2 text-green-500" />
           <div className="text-lg font-semibold">Ingresos</div>
           <div className="text-2xl font-bold">${analytics.sales.revenue.toFixed(2)}</div>
         </Card>
-
         <Card className="flex flex-col items-center justify-center p-4">
           <ShoppingCart className="w-6 h-6 mb-2 text-blue-500" />
           <div className="text-lg font-semibold">Ventas</div>
           <div className="text-2xl font-bold">{analytics.sales.total}</div>
         </Card>
-
         <Card className="flex flex-col items-center justify-center p-4">
           <Package className="w-6 h-6 mb-2 text-purple-500" />
           <div className="text-lg font-semibold">Inventario</div>
           <div className="text-2xl font-bold">{analytics.inventory.totalItems}</div>
         </Card>
-
         <Card className="flex flex-col items-center justify-center p-4">
           {analytics.sales.growth >= 0 ? (
             <TrendingUp className="w-6 h-6 mb-2 text-green-500" />
@@ -167,6 +161,46 @@ const paymentMethodData = [
           <div className="text-2xl font-bold">{analytics.sales.growth.toFixed(2)}%</div>
         </Card>
       </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-2">Ventas Diarias</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={analytics.dailySales}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="revenue" stroke="#3b82f6" />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-2">Métodos de Pago</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={paymentMethodData}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={80}
+                label
+              >
+                {paymentMethodData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 
 
 
