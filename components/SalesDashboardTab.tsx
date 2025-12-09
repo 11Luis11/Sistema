@@ -63,3 +63,48 @@ export function SalesDashboardTab() {
 useEffect(() => {
   fetchData();
 }, [period]);
+
+async function fetchData() {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const token = localStorage.getItem('sessionToken');
+      
+      const [salesResponse, analyticsResponse] = await Promise.all([
+        fetch(`/api/sales?period=${period}&limit=50`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`/api/analytics?period=${period}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      const [salesData, analyticsData] = await Promise.all([
+        salesResponse.json(),
+        analyticsResponse.json()
+      ]);
+
+      console.log('Sales Data:', salesData); // Debug
+      console.log('Analytics Data:', analyticsData); // Debug
+
+      if (salesData.success) {
+        setSales(salesData.sales || []);
+      } else {
+        console.error('Sales fetch failed:', salesData);
+        setError('Error al cargar ventas');
+      }
+
+      if (analyticsData.success) {
+        setAnalytics(analyticsData.analytics);
+      } else {
+        console.error('Analytics fetch failed:', analyticsData);
+        setError('Error al cargar analytics');
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Error al conectar con el servidor');
+    } finally {
+      setLoading(false);
+    }
+  }
