@@ -45,6 +45,55 @@ export function SuppliersTab() {
     fetchSuppliers();
   }, []);
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const token = localStorage.getItem('sessionToken');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      const response = await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-User-Role': user.role
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Error al crear proveedor');
+        return;
+      }
+
+      // LIMPIEZA POST ENVÍO
+      alert('Proveedor creado exitosamente');
+      setFormData({
+        code: '',
+        name: '',
+        contactName: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        country: 'Perú',
+        taxId: '',
+        notes: ''
+      });
+      setShowForm(false);
+      fetchSuppliers();
+
+    } catch (err) {
+      setError('Error al conectar con el servidor');
+      console.error(err);
+    }
+  }
+
+
   const filteredSuppliers = suppliers.filter(s =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.code.toLowerCase().includes(searchTerm.toLowerCase())
