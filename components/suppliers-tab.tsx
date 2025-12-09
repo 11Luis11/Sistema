@@ -45,6 +45,26 @@ export function SuppliersTab() {
     fetchSuppliers();
   }, []);
 
+  async function fetchSuppliers() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      const response = await fetch('/api/suppliers', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuppliers(data.suppliers);
+      }
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -93,6 +113,35 @@ export function SuppliersTab() {
     }
   }
 
+   async function handleDelete(id: number) {
+    if (!confirm('¿Está seguro que desea eliminar este proveedor?')) return;
+
+    try {
+      const token = localStorage.getItem('sessionToken');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      const response = await fetch(`/api/suppliers?id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Role': user.role
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Error al eliminar proveedor');
+        return;
+      }
+
+      alert('Proveedor eliminado exitosamente');
+      fetchSuppliers();
+    } catch (err) {
+      alert('Error al conectar con el servidor');
+      console.error(err);
+    }
+  }
 
   const filteredSuppliers = suppliers.filter(s =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -248,4 +297,76 @@ export function SuppliersTab() {
           </form>
         </Card>
       )}
+
+      {/* Suppliers Grid */}
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Cargando proveedores...
+        </div>
+      ) : filteredSuppliers.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">No hay proveedores registrados</p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredSuppliers.map((supplier) => (
+            <Card key={supplier.id} className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-lg text-foreground">{supplier.name}</h3>
+                  <p className="text-sm text-muted-foreground">{supplier.code}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleDelete(supplier.id)}
+                    className="p-2 hover:bg-destructive/10 rounded transition"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                {supplier.contact_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground">{supplier.contact_name}</span>
+                  </div>
+                )}
+                {supplier.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground truncate">{supplier.email}</span>
+                  </div>
+                )}
+                {supplier.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground">{supplier.phone}</span>
+                  </div>
+                )}
+                {supplier.city && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground">{supplier.city}, {supplier.country}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Productos:</span>
+                  <span className="font-semibold text-primary">{supplier.products_count}</span>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+
 }
