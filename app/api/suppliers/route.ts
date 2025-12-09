@@ -67,3 +67,45 @@ try {
         { status: 403 }
     );
     }
+
+    const body = await request.json();
+    const { code, name, contactName, email, phone, address, city, country, taxId, notes } = body;
+
+    if (!code || !name) {
+    return NextResponse.json(
+        { success: false, message: 'Code and name are required' },
+        { status: 400 }
+    );
+    }
+
+    const existing = await sql`
+    SELECT id FROM suppliers WHERE UPPER(code) = UPPER(${code})
+    `;
+
+    if (existing.length > 0) {
+    return NextResponse.json(
+        { success: false, message: 'Supplier code already exists' },
+        { status: 409 }
+    );
+    }
+
+    const result = await sql`
+    INSERT INTO suppliers (code, name, contact_name, email, phone, address, city, country, tax_id, notes, active)
+    VALUES (${code}, ${name}, ${contactName || null}, ${email || null}, ${phone || null}, 
+            ${address || null}, ${city || null}, ${country || 'Perú'}, ${taxId || null}, ${notes || null}, true)
+      RETURNING *
+    `;
+
+    return NextResponse.json(
+    { success: true, message: 'Supplier created successfully', supplier: result[0] },
+    { status: 201 }
+    );
+    } catch (error) {
+    console.error('[Suppliers POST Error]', error);
+    return NextResponse.json(
+    { success: false, message: 'Error creating supplier' },
+    { status: 500 }
+    );
+    }
+}
+
