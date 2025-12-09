@@ -108,6 +108,35 @@ if (!analytics) {
     );
   }
 
+const paymentMethodData = [
+    { name: 'Efectivo', value: analytics.sales.byPaymentMethod.cash },
+    { name: 'Tarjeta', value: analytics.sales.byPaymentMethod.card },
+    { name: 'Transferencia', value: analytics.sales.byPaymentMethod.transfer },
+  ].filter(item => item.value > 0);
+
+
+  return (
+    <div className="space-y-6">
+
+      {/* -------------------------------------
+         DAILY 5 – ADDERLY
+         Header del dashboard + selector de rango de tiempo.
+      ------------------------------------- */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground mb-2">Dashboard Analítico</h2>
+          <p className="text-muted-foreground">Análisis de ventas e inventario</p>
+        </div>
+        <select
+          value={period}
+          onChange={(e) => setPeriod(parseInt(e.target.value))}
+          className="border rounded px-2 py-1"
+        >
+          <option value={7}>Últimos 7 días</option>
+          <option value={30}>Últimos 30 días</option>
+          <option value={90}>Últimos 90 días</option>
+        </select>
+      </div>
 
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="flex flex-col items-center justify-center p-4">
@@ -138,6 +167,7 @@ if (!analytics) {
           <div className="text-2xl font-bold">{analytics.sales.growth.toFixed(2)}%</div>
         </Card>
       </div>
+
 
 
   
