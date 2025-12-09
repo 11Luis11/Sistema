@@ -102,7 +102,6 @@ Este documento describe las medidas de seguridad implementadas en el sistema de 
 - Contraseñas cifradas con sal
 - Registros de auditoría para modificaciones
 
-
 ## Mejoras futuras en materia de seguridad
 
 1. **Autenticación de dos factores (2FA)**
