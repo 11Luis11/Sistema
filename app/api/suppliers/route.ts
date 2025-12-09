@@ -109,3 +109,60 @@ try {
     }
 }
 
+export async function DELETE(request: NextRequest) {
+try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitCheck = apiLimiter.check(`suppliers:delete:${ip}`);
+
+    if (!rateLimitCheck.allowed) {
+    return NextResponse.json(
+        { success: false, message: 'Rate limit exceeded' },
+        { status: 429 }
+    );
+    }
+
+    const role = getRoleFromRequest(request);
+
+    if (!['Administrator', 'Manager'].includes(role || '')) {
+    return NextResponse.json(
+        { success: false, message: 'Unauthorized' },
+        { status: 403 }
+    );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+    return NextResponse.json(
+        { success: false, message: 'Supplier ID required' },
+        { status: 400 }
+    );
+    }
+
+    const result = await sql`
+    UPDATE suppliers
+    SET active = false, updated_at = NOW()
+    WHERE id = ${parseInt(id)} AND active = true
+    RETURNING id, name
+    `;
+
+    if (result.length === 0) {
+    return NextResponse.json(
+        { success: false, message: 'Supplier not found' },
+        { status: 404 }
+    );
+    }
+
+    return NextResponse.json({
+    success: true,
+    message: 'Supplier deleted successfully'
+    });
+    } catch (error) {
+    console.error('[Suppliers DELETE Error]', error);
+    return NextResponse.json(
+    { success: false, message: 'Error deleting supplier' },
+    { status: 500 }
+    );
+    }
+}
