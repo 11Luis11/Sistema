@@ -13,6 +13,7 @@ function getUserIdFromRequest(request: NextRequest): number | null {
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate Limit
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const rateLimitCheck = apiLimiter.check(`sales:get:${ip}`);
 
@@ -23,13 +24,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Parámetros
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '100');
     const period = parseInt(searchParams.get('period') || '30');
 
+    // Fecha inicial según período
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - period);
 
+    // Query principal de ventas
     const sales = await sql`
       SELECT 
         s.id,
@@ -41,8 +45,8 @@ export async function GET(request: NextRequest) {
         s.payment_method,
         s.status,
         s.created_at,
-        CONCAT(u.first_name, ' ', u.last_name) as user_name,
-        COUNT(si.id) as items_count
+        CONCAT(u.first_name, ' ', u.last_name) AS user_name,
+        COUNT(si.id) AS items_count
       FROM sales s
       JOIN users u ON s.user_id = u.id
       LEFT JOIN sale_items si ON s.id = si.sale_id
@@ -51,3 +55,15 @@ export async function GET(request: NextRequest) {
       ORDER BY s.created_at DESC
       LIMIT ${limit}
     `;
+
+    return NextResponse.json({ success: true, sales });
+  } catch (error) {
+    console.error('[Sales GET Error]', error);
+
+    return NextResponse.json(
+      { success: false, message: 'Error fetching sales' },
+      { status: 500 }
+    );
+  }
+}
+git 
