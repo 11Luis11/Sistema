@@ -1,5 +1,5 @@
 'use client';
-import { SalesRegistrationTab } from '@/components/sales-registration-tab';
+'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { EditProductForm } from '@/components/edit-product-form';
 import { UserManagementTab } from '@/components/user-management-tab';
 import { SuppliersTab } from '@/components/suppliers-tab';
 import { SalesDashboardTab } from '@/components/sales-dashboard-tab';
+import { SalesRegistrationTab } from '@/components/sales-registration-tab'; // ✅ Agregar esta línea
 
 
 interface User {
