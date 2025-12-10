@@ -357,7 +357,7 @@ export function SalesDashboardTab() {
           </Card>
         </div>
       )}
-//queda//
+
       {/* Tabla de Ventas Recientes */}
       <Card className="overflow-hidden">
         <div className="p-6 border-b border-border">
