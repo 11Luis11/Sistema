@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  meta JSONB DEFAULT '{}' :: JSONB,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
