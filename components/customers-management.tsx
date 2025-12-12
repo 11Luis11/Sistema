@@ -31,6 +31,28 @@ export function CustomersManagement() {
     setLoading(false);
   }
   
+   const [sortField, setSortField] = useState<'name' | 'document'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  function sortBy(field: 'name' | 'document') {
+    if (sortField === field)
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+
+    setCustomers(prev =>
+      [...prev].sort((a, b) => {
+        const A = (a[field] || '').toString().toLowerCase();
+        const B = (b[field] || '').toString().toLowerCase();
+        if (A < B) return sortDir === 'asc' ? -1 : 1;
+        if (A > B) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      })
+    );
+  }
+  
   function openNew() {
     setEditing(null);
     setShowForm(true);
@@ -83,8 +105,12 @@ export function CustomersManagement() {
           <table className="w-full">
             <thead className="bg-muted border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left">Nombre</th>
-                <th className="px-6 py-3 text-left">Documento</th>
+               <th className="px-6 py-3 text-left">
+  <button onClick={() => sortBy('name')} className="font-semibold">Nombre</button>
+</th>
+<th className="px-6 py-3 text-left">
+  <button onClick={() => sortBy('document')} className="font-semibold">Documento</button>
+</th>
                 <th className="px-6 py-3 text-left">Correo</th>
                 <th className="px-6 py-3 text-left">Teléfono</th>
                 <th className="px-6 py-3 text-left">Acciones</th>
