@@ -51,3 +51,40 @@ export default function CustomerForm({ initial = null, onSuccess }: { initial?: 
     </form>
   );
 }
+
+async function submit(e: any) {
+  e.preventDefault();
+  if (!form.name || !form.document || !form.email) {
+    alert('Complete los campos obligatorios');
+    return;
+  }
+  if (!isEmailValid(form.email)) {
+    alert('Correo inválido');
+    return;
+  }
+
+  // Check duplicated document client-side (best-effort)
+  const dupCheck = await fetch(`/api/customers?search=${encodeURIComponent(form.document)}&limit=1`);
+  const dupData = await dupCheck.json();
+  if (!initial && dupData.success && dupData.customers.length > 0 && dupData.customers[0].document === form.document) {
+    alert('Documento ya registrado');
+    return;
+  }
+
+  setLoading(true);
+  const url = initial ? `/api/customers/${initial.id}` : '/api/customers';
+  const method = initial ? 'PUT' : 'POST';
+  const payload = { ...form, userId: Number(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') as string).id : null) };
+  const res = await fetch(url, {
+    method,
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  setLoading(false);
+  if (res.ok) {
+    onSuccess();
+  } else {
+    const data = await res.json();
+    alert(data.message || 'Error');
+  }
+}
