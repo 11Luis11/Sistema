@@ -21,6 +21,10 @@ export async function PUT(request: NextRequest, { params }: any) {
       if (dup.length > 0) return NextResponse.json({ success: false, message: 'Document already used' }, { status: 409 });
     }
 
+    await sql`
+      UPDATE customers SET name=${name}, document=${document}, phone=${phone}, email=${email}, updated_at=NOW()
+      WHERE id=${id}
+    `;
 
     // Audit
     await sql`
