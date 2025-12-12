@@ -30,7 +30,16 @@ export function CustomersManagement() {
     } catch (err) { console.error(err); }
     setLoading(false);
   }
+  
+  function openNew() {
+    setEditing(null);
+    setShowForm(true);
+  }
 
+  function editCustomer(c: Customer) {
+    setEditing(c);
+    setShowForm(true);
+  }
   
   async function removeCustomer(id: number) {
     if (!confirm('¿Desactivar cliente?')) return;
