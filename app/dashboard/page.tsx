@@ -1,5 +1,5 @@
 'use client';
-'use client';
+import { SalesRegistrationTab } from '@/components/sales-registration-tab';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -12,8 +12,8 @@ import { EditProductForm } from '@/components/edit-product-form';
 import { UserManagementTab } from '@/components/user-management-tab';
 import { SuppliersTab } from '@/components/suppliers-tab';
 import { SalesDashboardTab } from '@/components/sales-dashboard-tab';
-import { SalesRegistrationTab } from '@/components/sales-registration-tab'; // ✅ Agregar esta línea
-
+import { CustomersManagement } from '@/components/customers-management';
+import NotificationBell from '@/components/NotificationBell';
 
 interface User {
   id: number;
@@ -215,30 +215,34 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-foreground">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-primary font-semibold">{user?.role}</p>
-            </div>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Cerrar Sesión
-            </Button>
-          </div>
+<div className="flex items-center gap-4">
+  <div className="text-right">
+    <p className="text-sm font-medium text-foreground">
+      {user?.firstName} {user?.lastName}
+    </p>
+    <p className="text-xs text-primary font-semibold">{user?.role}</p>
+  </div>
+
+  {/* Notification bell (nuevo) */}
+  <NotificationBell />
+
+  <Button
+    onClick={handleLogout}
+    variant="outline"
+    size="sm"
+    className="gap-2"
+  >
+    <LogOut className="w-4 h-4" />
+    Cerrar Sesión
+  </Button>
+</div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-2 mb-8 h-auto">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2 mb-8 h-auto">
             <TabsTrigger value="products" className="flex items-center gap-2 py-3">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Inventario</span>
@@ -254,6 +258,10 @@ export default function Dashboard() {
             <TabsTrigger value="suppliers" className="flex items-center gap-2 py-3">
               <Truck className="w-4 h-4" />
               <span className="hidden sm:inline">Proveedores</span>
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-2 py-3">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Clientes</span>
             </TabsTrigger>
             <TabsTrigger value="movements" className="flex items-center gap-2 py-3">
               <History className="w-4 h-4" />
@@ -406,7 +414,9 @@ export default function Dashboard() {
           <TabsContent value="suppliers">
             <SuppliersTab />
           </TabsContent>
-
+          <TabsContent value="customers">
+          <CustomersManagement />
+          </TabsContent>
           {/* Movements Tab */}
           <TabsContent value="movements" className="space-y-8">
             <div className="flex items-center justify-between">
