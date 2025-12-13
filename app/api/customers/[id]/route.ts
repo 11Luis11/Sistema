@@ -3,13 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { apiLimiter } from '@/lib/security/rate-limit';
 import { createNotification } from '@/lib/notifications';
 
-export async function PUT(request: NextRequest, { params }: any) {
+export async function PUT(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const allowed = apiLimiter.check(`customers:put:${ip}`);
     if (!allowed.allowed) return NextResponse.json({ success: false, message: 'Rate limit exceeded' }, { status: 429 });
 
-    const id = Number(params.id);
+    const { id: idParam } = await params; // Await params aquí
+    const id = Number(idParam);
     const body = await request.json();
     const { name, document, phone, email, userId } = body;
 
@@ -42,13 +46,17 @@ export async function PUT(request: NextRequest, { params }: any) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: any) {
+export async function DELETE(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const allowed = apiLimiter.check(`customers:delete:${ip}`);
     if (!allowed.allowed) return NextResponse.json({ success: false, message: 'Rate limit exceeded' }, { status: 429 });
 
-    const id = Number(params.id);
+    const { id: idParam } = await params; // Await params aquí
+    const id = Number(idParam);
     if (!id) return NextResponse.json({ success: false, message: 'Customer id required' }, { status: 400 });
 
     await sql`UPDATE customers SET active = false, updated_at = NOW() WHERE id = ${id}`;
