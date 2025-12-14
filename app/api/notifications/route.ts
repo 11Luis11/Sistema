@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     if (!allowed.allowed) return NextResponse.json({ success: false, message: 'Rate limit exceeded' }, { status: 429 });
 
     const rows = await sql`SELECT id, type, message, meta, read, created_at FROM notifications ORDER BY id DESC LIMIT 200`;
-   
+  
     return NextResponse.json({ success: true, notifications: rows });
   } catch (err) {
     console.error('[NOTIFICATIONS GET Error]', err);
