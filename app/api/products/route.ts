@@ -170,22 +170,32 @@ export async function POST(request: NextRequest) {
     const newProduct = result[0];
 
     // Registrar movimiento inicial solo si hay stock
-    if (initialStock > 0) {
-      try {
-        await sql`
-          INSERT INTO inventory_movements (
-            product_id, user_id, movement_type, quantity, previous_stock, new_stock, reason
-          )
-          VALUES (
-            ${newProduct.id}, ${userId}, 'ENTRADA', ${initialStock}, 0, ${initialStock}, 'Stock inicial del producto'
-          )
-        `;
-      } catch (movementError) {
-        console.error('[Movement Insert Error]', movementError);
-        // Si falla el movimiento, no fallar todo - el producto ya está creado
-        // Podrías optar por eliminar el producto aquí si quieres que sea atómico
-      }
-    }
+if (initialStock > 0) {
+  try {
+    await sql`
+      INSERT INTO inventory_movements (
+        product_id, user_id, movement_type, quantity, previous_stock, new_stock, reason
+      )
+      VALUES (
+        ${newProduct.id}, ${userId}, 'ENTRADA', ${initialStock}, 0, ${initialStock}, 'Stock inicial del producto'
+      )
+    `;
+  } catch (movementError) {
+    console.error('[Movement Insert Error]', movementError);
+  }
+}
+
+// Notificar si stock inicial es crítico (threshold = 5)
+try {
+  const threshold = 5;
+  if (initialStock <= threshold) {
+    // createNotification helper
+    const { createNotification } = await import('@/lib/notifications');
+    await createNotification('stock_critico', `Producto ${newProduct.name} creado con stock bajo (${initialStock})`, { productId: newProduct.id, stock: initialStock });
+  }
+} catch (err) {
+  console.error('[Stock notification error]', err);
+}
 
     return NextResponse.json(
       { success: true, message: 'Product created successfully', product: newProduct },
@@ -255,3 +265,4 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
