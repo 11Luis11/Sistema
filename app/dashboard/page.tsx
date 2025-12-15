@@ -94,11 +94,11 @@ export default function Dashboard() {
         movementsResponse.json()
       ]);
 
-      if (productsData.success) {
+      if (productsData.success && productsData.products) {
         setProducts(productsData.products);
       }
       
-      if (movementsData.success) {
+      if (movementsData.success && movementsData.movements) {
         setMovements(movementsData.movements);
       }
     } catch (error) {
@@ -148,16 +148,16 @@ export default function Dashboard() {
     router.push('/');
   };
 
-  const filteredProducts = products.filter(p =>
+  const filteredProducts = Array.isArray(products) ? products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
-  const filteredMovements = movements.filter(m =>
+  const filteredMovements = Array.isArray(movements) ? movements.filter(m =>
     m.product_name.toLowerCase().includes(movementSearchTerm.toLowerCase()) ||
     m.product_code.toLowerCase().includes(movementSearchTerm.toLowerCase()) ||
     m.movement_type.toLowerCase().includes(movementSearchTerm.toLowerCase())
-  );
+  ) : [];
 
   const canManageProducts = ['Administrator', 'Manager', 'ADM_INV'].includes(user?.role || '');
   const canDeleteProducts = ['Administrator'].includes(user?.role || '');
@@ -215,27 +215,27 @@ export default function Dashboard() {
             </div>
           </div>
           
-<div className="flex items-center gap-4">
-  <div className="text-right">
-    <p className="text-sm font-medium text-foreground">
-      {user?.firstName} {user?.lastName}
-    </p>
-    <p className="text-xs text-primary font-semibold">{user?.role}</p>
-  </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-medium text-foreground">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-xs text-primary font-semibold">{user?.role}</p>
+            </div>
 
-  {/* Notification bell (nuevo) */}
-  <NotificationBell />
+            {/* Notification bell */}
+            <NotificationBell />
 
-  <Button
-    onClick={handleLogout}
-    variant="outline"
-    size="sm"
-    className="gap-2"
-  >
-    <LogOut className="w-4 h-4" />
-    Cerrar Sesión
-  </Button>
-</div>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Cerrar Sesión
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -260,8 +260,8 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Proveedores</span>
             </TabsTrigger>
             <TabsTrigger value="customers" className="flex items-center gap-2 py-3">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Clientes</span>
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Clientes</span>
             </TabsTrigger>
             <TabsTrigger value="movements" className="flex items-center gap-2 py-3">
               <History className="w-4 h-4" />
@@ -414,9 +414,11 @@ export default function Dashboard() {
           <TabsContent value="suppliers">
             <SuppliersTab />
           </TabsContent>
+          
           <TabsContent value="customers">
-          <CustomersManagement />
+            <CustomersManagement />
           </TabsContent>
+          
           {/* Movements Tab */}
           <TabsContent value="movements" className="space-y-8">
             <div className="flex items-center justify-between">

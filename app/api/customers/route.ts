@@ -1,3 +1,4 @@
+// app/api/customers/route.ts
 import { sql } from '@/lib/database';
 import { NextRequest, NextResponse } from 'next/server';
 import { apiLimiter } from '@/lib/security/rate-limit';
@@ -6,14 +7,15 @@ import { createNotification } from '@/lib/notifications';
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    const allowed = apiLimiter.check(customers:get:${ip});
+    const allowed = apiLimiter.check(`customers:get:${ip}`);
     if (!allowed.allowed) return NextResponse.json({ success: false, message: 'Rate limit exceeded' }, { status: 429 });
 
     const { searchParams } = new URL(request.url);
     const search = (searchParams.get('search') || '').trim();
     const limit = Number(searchParams.get('limit') || '100');
     const offset = Number(searchParams.get('offset') || '0');
-    const pattern = %${search}%;
+
+    const pattern = `%${search}%`;
 
     const rows = await sql`
       SELECT id, name, document, phone, email, active, created_at, updated_at
@@ -26,6 +28,7 @@ export async function GET(request: NextRequest) {
       LIMIT ${limit}
       OFFSET ${offset}
     `;
+
     return NextResponse.json({ success: true, customers: rows });
   } catch (err) {
     console.error('[CUSTOMERS GET Error]', err);
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    const allowed = apiLimiter.check(customers:post:${ip});
+    const allowed = apiLimiter.check(`customers:post:${ip}`);
     if (!allowed.allowed) return NextResponse.json({ success: false, message: 'Rate limit exceeded' }, { status: 429 });
 
     const body = await request.json();
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check duplicate document
-    const existing = await sqlSELECT id FROM customers WHERE document = ${document};
+    const existing = await sql`SELECT id FROM customers WHERE document = ${document}`;
     if (existing.length > 0) {
       return NextResponse.json({ success: false, message: 'Document already exists' }, { status: 409 });
     }
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Create notification for new customer
     try {
-      await createNotification('cliente', Nuevo cliente: ${newCustomer.name}, { customerId: newCustomer.id });
+      await createNotification('cliente', `Nuevo cliente: ${newCustomer.name}`, { customerId: newCustomer.id });
     } catch (notiErr) {
       console.error('[Notification Error]', notiErr);
     }

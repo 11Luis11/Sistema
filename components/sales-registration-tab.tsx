@@ -45,7 +45,7 @@ export function SalesRegistrationTab({ onSaleComplete }: SalesRegistrationTabPro
 
   useEffect(() => {
     if (searchTerm.trim()) {
-      const filtered = products.filter(p =>
+      const filtered = (products || []).filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.code.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -61,7 +61,7 @@ export function SalesRegistrationTab({ onSaleComplete }: SalesRegistrationTabPro
       const data = await response.json();
       if (data.success) {
         // Asegurar que los productos tengan stock > 0 y convertir price a número
-        const validProducts = data.products
+        const validProducts = (data.products || [])
           .filter((p: Product) => (p.current_stock || 0) > 0)
           .map((p: Product) => ({
             ...p,

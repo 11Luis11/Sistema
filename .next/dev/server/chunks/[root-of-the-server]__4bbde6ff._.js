@@ -355,18 +355,30 @@ async function POST(request) {
         if (initialStock > 0) {
             try {
                 await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-          INSERT INTO inventory_movements (
-            product_id, user_id, movement_type, quantity, previous_stock, new_stock, reason
-          )
-          VALUES (
-            ${newProduct.id}, ${userId}, 'ENTRADA', ${initialStock}, 0, ${initialStock}, 'Stock inicial del producto'
-          )
-        `;
+      INSERT INTO inventory_movements (
+        product_id, user_id, movement_type, quantity, previous_stock, new_stock, reason
+      )
+      VALUES (
+        ${newProduct.id}, ${userId}, 'ENTRADA', ${initialStock}, 0, ${initialStock}, 'Stock inicial del producto'
+      )
+    `;
             } catch (movementError) {
                 console.error('[Movement Insert Error]', movementError);
-            // Si falla el movimiento, no fallar todo - el producto ya está creado
-            // Podrías optar por eliminar el producto aquí si quieres que sea atómico
             }
+        }
+        // Notificar si stock inicial es crítico (threshold = 5)
+        try {
+            const threshold = 5;
+            if (initialStock <= threshold) {
+                // createNotification helper
+                const { createNotification } = await __turbopack_context__.A("[project]/lib/notifications.ts [app-route] (ecmascript, async loader)");
+                await createNotification('stock_critico', `Producto ${newProduct.name} creado con stock bajo (${initialStock})`, {
+                    productId: newProduct.id,
+                    stock: initialStock
+                });
+            }
+        } catch (err) {
+            console.error('[Stock notification error]', err);
         }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: true,

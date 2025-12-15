@@ -197,6 +197,7 @@ try {
   console.error('[Stock notification error]', err);
 }
 
+
     return NextResponse.json(
       { success: true, message: 'Product created successfully', product: newProduct },
       { status: 201 }
@@ -265,4 +266,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

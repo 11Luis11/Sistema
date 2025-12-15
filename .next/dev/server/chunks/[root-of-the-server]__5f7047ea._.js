@@ -183,6 +183,8 @@ module.exports = mod;
 __turbopack_context__.s([
     "DELETE",
     ()=>DELETE,
+    "GET",
+    ()=>GET,
     "PUT",
     ()=>PUT
 ]);
@@ -194,8 +196,67 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$serv
 ;
 ;
 ;
+async function GET(request) {
+    try {
+        const ip = request.headers.get('x-forwarded-for') || 'unknown';
+        const rateLimitCheck = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$rate$2d$limit$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["apiLimiter"].check(`products:get:${ip}`);
+        if (!rateLimitCheck.allowed) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                success: false,
+                message: 'Rate limit exceeded'
+            }, {
+                status: 429
+            });
+        }
+        const { searchParams } = new URL(request.url);
+        const search = searchParams.get('search') || '';
+        const categoryId = searchParams.get('categoryId');
+        const limit = parseInt(searchParams.get('limit') || '100');
+        const offset = parseInt(searchParams.get('offset') || '0');
+        const searchPattern = `%${search}%`;
+        const category = categoryId ? parseInt(categoryId) : null;
+        // Construcción de query con active = true
+        let whereConditions = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`p.active = true`;
+        if (search) {
+            whereConditions = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`${whereConditions} AND (p.name ILIKE ${searchPattern} OR p.code ILIKE ${searchPattern})`;
+        }
+        if (category) {
+            whereConditions = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`${whereConditions} AND p.category_id = ${category}`;
+        }
+        const products = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+      SELECT 
+        p.id, p.code, p.name, p.description, p.price, p.current_stock,
+        p.size, p.color, p.gender, c.name AS category,
+        p.created_at, p.updated_at
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.id
+      WHERE ${whereConditions}
+      ORDER BY p.created_at DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `;
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            success: true,
+            products
+        });
+    } catch (error) {
+        console.error('[Products GET Error]', error);
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            success: false,
+            message: 'Error fetching products',
+            error_code: 'FETCH_ERROR'
+        }, {
+            status: 500
+        });
+    }
+}
+// ... (mantén POST y DELETE igual)
 function getRoleFromRequest(request) {
     return request.headers.get('X-User-Role') || null;
+}
+function getUserIdFromRequest(request) {
+    const userIdHeader = request.headers.get('X-User-Id');
+    return userIdHeader ? parseInt(userIdHeader) : null;
 }
 async function PUT(request, { params }) {
     try {
@@ -223,7 +284,18 @@ async function PUT(request, { params }) {
                 status: 403
             });
         }
+        const userId = getUserIdFromRequest(request);
+        if (!userId) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                success: false,
+                message: 'User ID required',
+                error_code: 'USER_ID_REQUIRED'
+            }, {
+                status: 400
+            });
+        }
         const body = await request.json();
+        console.log('[DEBUG PUT] Received data:', body);
         const validation = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$security$2f$input$2d$validation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["validateProduct"])(body);
         if (!validation.success) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
@@ -235,24 +307,17 @@ async function PUT(request, { params }) {
                 status: 400
             });
         }
-        const { name, description, categoryId, price, size, color, gender } = validation.data;
+        const { name, description, categoryId, price, size, color, gender, stock } = validation.data;
         const priceNum = Number(price);
         const categoryNum = Number(categoryId);
         const idNum = Number(id);
-        const result = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-      UPDATE products 
-      SET name = ${name},
-          description = ${description},
-          category_id = ${categoryNum},
-          price = ${priceNum},
-          size = ${size},
-          color = ${color},
-          gender = ${gender},
-          updated_at = NOW()
-      WHERE id = ${idNum} AND active = true
-      RETURNING *
+        const newStock = stock !== undefined ? Number(stock) : null;
+        console.log('[DEBUG PUT] Processing update for product:', idNum);
+        // Obtener stock actual antes de actualizar
+        const currentProduct = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+      SELECT current_stock FROM products WHERE id = ${idNum} AND active = true
     `;
-        if (result.length === 0) {
+        if (currentProduct.length === 0) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
                 message: 'Product not found',
@@ -260,6 +325,54 @@ async function PUT(request, { params }) {
             }, {
                 status: 404
             });
+        }
+        const previousStock = currentProduct[0].current_stock;
+        // Actualizar producto
+        let result;
+        if (newStock !== null) {
+            result = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+        UPDATE products 
+        SET name = ${name},
+            description = ${description || ''},
+            category_id = ${categoryNum},
+            price = ${priceNum},
+            size = ${size || ''},
+            color = ${color || ''},
+            gender = ${gender || ''},
+            current_stock = ${newStock},
+            updated_at = NOW()
+        WHERE id = ${idNum} AND active = true
+        RETURNING *
+      `;
+        } else {
+            result = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+        UPDATE products 
+        SET name = ${name},
+            description = ${description || ''},
+            category_id = ${categoryNum},
+            price = ${priceNum},
+            size = ${size || ''},
+            color = ${color || ''},
+            gender = ${gender || ''},
+            updated_at = NOW()
+        WHERE id = ${idNum} AND active = true
+        RETURNING *
+      `;
+        }
+        console.log('[DEBUG PUT] Product updated:', result[0]);
+        // Registrar movimiento si cambió el stock
+        if (newStock !== null && previousStock !== newStock) {
+            const quantity = newStock - previousStock;
+            const movementType = quantity > 0 ? 'ENTRADA' : 'SALIDA';
+            await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
+        INSERT INTO inventory_movements (
+          product_id, user_id, movement_type, quantity, previous_stock, new_stock, reason
+        )
+        VALUES (
+          ${idNum}, ${userId}, ${movementType}, ${Math.abs(quantity)}, ${previousStock}, ${newStock}, 'Ajuste de inventario desde edición de producto'
+        )
+      `;
+            console.log('[DEBUG PUT] Movement created:', movementType, Math.abs(quantity));
         }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: true,
@@ -305,16 +418,17 @@ async function DELETE(request, { params }) {
             });
         }
         const productId = Number(id);
-        // DELETE DEFINITIVO
+        // SOFT DELETE: cambiar active a false en lugar de borrar
         const result = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$database$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["sql"]`
-      DELETE FROM products
-      WHERE id = ${productId}
-      RETURNING id
+      UPDATE products
+      SET active = false, updated_at = NOW()
+      WHERE id = ${productId} AND active = true
+      RETURNING id, name
     `;
         if (result.length === 0) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
-                message: 'Product not found',
+                message: 'Product not found or already deleted',
                 error_code: 'NOT_FOUND'
             }, {
                 status: 404
@@ -322,7 +436,8 @@ async function DELETE(request, { params }) {
         }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             success: true,
-            message: 'Product deleted permanently'
+            message: 'Product deleted successfully',
+            product: result[0]
         });
     } catch (error) {
         console.error('[Delete Product Error]', error);

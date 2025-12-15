@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/luist/OneDrive/Documentos/Ga/Sistema/lib/notifications.ts"],"sourcesContent":["// lib/notifications.ts\r\nimport { sql } from '@/lib/database';\r\n\r\nexport async function createNotification(type: string, message: string, meta: any = {}) {\r\n  try {\r\n    await sql`\r\n      INSERT INTO notifications (type, message, meta, read)\r\n      VALUES (${type}, ${message}, ${JSON.stringify(meta)}, false)\r\n    `;\r\n  } catch (err) {\r\n    console.error('[createNotification Error]', err);\r\n  }\r\n}\r\n"],"names":[],"mappings":"AAAA,uBAAuB;;;;;AACvB;;AAEO,eAAe,mBAAmB,IAAY,EAAE,OAAe,EAAE,OAAY,CAAC,CAAC;IACpF,IAAI;QACF,MAAM,wHAAG,CAAC;;cAEA,EAAE,KAAK,EAAE,EAAE,QAAQ,EAAE,EAAE,KAAK,SAAS,CAAC,MAAM;IACtD,CAAC;IACH,EAAE,OAAO,KAAK;QACZ,QAAQ,KAAK,CAAC,8BAA8B;IAC9C;AACF"}}]
+}
