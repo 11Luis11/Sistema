@@ -32,3 +32,11 @@ GET /api/customers
 POST /api/clientes
 PUT /api/clientes/:id
 GET /api/notificaciones
+
+PRUEBAS ADICIONALES:
+
+- Crear un nuevo proveedor: tras la creación, verifique la notificación "Nuevo proveedor: <nombre>" en la campana desplegable.
+- Crear un nuevo cliente: debe aparecer la notificación "Nuevo cliente: <nombre>".
+- Crear un producto con un stock inicial <=5: debe aparecer la notificación "stock_critico" (verificar en la campana).
+- Marcar notificaciones individuales y todas: verificar rápidamente las actualizaciones de recuento.
+- Verificar el contenido de los registros de auditoría para las entradas de creación/actualización de clientes.
